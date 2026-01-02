@@ -1,0 +1,177 @@
+Rendering a 1200x800 image with 10 samples per pixel in 8x8 blocks.
+==PROF== Connected to process 5043 (/home/yuanqingwang/GPU_DD2360/DD2360_PROJ/cudart)
+==PROF== Profiling "render": 0%
+==WARNING== Launching the workload is taking more time than expected. If this continues to hang, terminate the profile and re-try by profiling the range of all related launches using '--replay-mode range'. See https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#replay for more details.
+....50%....100% - 2 passes
+
+==ERROR== LaunchFailed
+==PROF== Trying to shutdown target application
+==ERROR== The application returned an error code (9).
+==ERROR== An error occurred while trying to profile.
+[5043] cudart@127.0.0.1
+  render(vec3 *, int, int, int, camera **, hitable **, curandStateXORWOW *) (0, 0, 0)x(0, 0, 0), Context 1, Stream 7, Device 0, CC 8.9
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------ ------------
+    Metric Name              Metric Unit Metric Value
+    ----------------------- ------------ ------------
+    DRAM Frequency          cycle/second      (!) nan
+    SM Frequency            cycle/second      (!) nan
+    Elapsed Cycles                 cycle      (!) nan
+    Memory Throughput                  %      (!) nan
+    DRAM Throughput                    %      (!) nan
+    Duration                     nsecond      (!) nan
+    L1/TEX Cache Throughput            %      (!) nan
+    L2 Cache Throughput                %      (!) nan
+    SM Active Cycles               cycle      (!) nan
+    Compute (SM) Throughput            %      (!) nan
+    ----------------------- ------------ ------------
+
+    ERR   Rule Bottleneck returned an error: Metric launch__waves_per_multiprocessor not found                          
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/SpeedOfLight.py:78                       
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+
+    Section: GPU Speed Of Light Roofline Chart
+    ERR   float division by zero                                                                                        
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/SpeedOfLight_Roofline.py:64              
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle      (!) nan
+    Executed Ipc Elapsed  inst/cycle      (!) nan
+    Issue Slots Busy               %      (!) nan
+    Issued Ipc Active     inst/cycle      (!) nan
+    SM Busy                        %      (!) nan
+    -------------------- ----------- ------------
+
+    Section: Memory Workload Analysis
+    --------------------------- ----------- ------------
+    Metric Name                 Metric Unit Metric Value
+    --------------------------- ----------- ------------
+    Memory Throughput           byte/second      (!) nan
+    Mem Busy                              %      (!) nan
+    Max Bandwidth                         %      (!) nan
+    L1/TEX Hit Rate                       %      (!) nan
+    L2 Compression Success Rate           %      (!) nan
+    L2 Compression Ratio                             nan
+    L2 Hit Rate                           %      (!) nan
+    Mem Pipes Busy                        %      (!) nan
+    --------------------------- ----------- ------------
+
+    Section: Scheduler Statistics
+    ---------------------------- ----------- ------------
+    Metric Name                  Metric Unit Metric Value
+    ---------------------------- ----------- ------------
+    One or More Eligible                   %      (!) nan
+    Issued Warp Per Scheduler                     (!) nan
+    No Eligible                            %      (!) nan
+    Active Warps Per Scheduler          warp      (!) nan
+    Eligible Warps Per Scheduler        warp      (!) nan
+    ---------------------------- ----------- ------------
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle      (!) nan
+    Warp Cycles Per Executed Instruction           cycle      (!) nan
+    Avg. Active Threads Per Warp                              (!) nan
+    Avg. Not Predicated Off Threads Per Warp                  (!) nan
+    ---------------------------------------- ----------- ------------
+
+    Section: Instruction Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Avg. Executed Instructions Per Scheduler        inst      (!) nan
+    Executed Instructions                           inst      (!) nan
+    Avg. Issued Instructions Per Scheduler          inst      (!) nan
+    Issued Instructions                             inst      (!) nan
+    ---------------------------------------- ----------- ------------
+
+    ERR   Rule FP32/64 Instructions returned an error: Metric sass__inst_executed_per_opcode not found                  
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/FPInstructions.py:52                     
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+
+    Section: Launch Statistics
+    -------------------------------- ----------- ------------
+    Metric Name                      Metric Unit Metric Value
+    -------------------------------- ----------- ------------
+    Block Size                                        (!) n/a
+    Function Cache Configuration                      (!) n/a
+    Grid Size                                         (!) n/a
+    Registers Per Thread                              (!) n/a
+    Shared Memory Configuration Size                  (!) n/a
+    Driver Shared Memory Per Block                    (!) n/a
+    Dynamic Shared Memory Per Block                   (!) n/a
+    Static Shared Memory Per Block                    (!) n/a
+    Threads                                           (!) n/a
+    Waves Per SM                                      (!) n/a
+    -------------------------------- ----------- ------------
+
+    ERR   Rule Launch Configuration returned an error: Metric launch__block_size not found                              
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/LaunchStatistics.py:47                   
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                                   (!) n/a
+    Block Limit Registers                            (!) n/a
+    Block Limit Shared Mem                           (!) n/a
+    Block Limit Warps                                (!) n/a
+    Theoretical Active Warps per SM                  (!) n/a
+    Theoretical Occupancy                            (!) n/a
+    Achieved Occupancy                        %      (!) nan
+    Achieved Active Warps Per SM           warp      (!) nan
+    ------------------------------- ----------- ------------
+
+    ERR   Rule Occupancy returned an error: Metric sm__maximum_warps_per_active_cycle_pct not found                     
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/Occupancy.py:67                          
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+
+    Section: Source Counters
+    ------------------------- ----------- ------------
+    Metric Name               Metric Unit Metric Value
+    ------------------------- ----------- ------------
+    Branch Instructions Ratio           %      (!) nan
+    Branch Instructions              inst      (!) nan
+    Branch Efficiency                   %      (!) nan
+    Avg. Divergent Branches                    (!) nan
+    ------------------------- ----------- ------------
+
+    ERR   Rule PC sampling data returned an error: Metric smsp__pcsamp_sample_count not found                           
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/PCSamplingData.py:47                     
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   Rule Uncoalesced Global Accesses returned an error: Metric memory_l2_theoretical_sectors_global not found     
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/UncoalescedAccess.py:70                  
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   Rule Uncoalesced Shared Accesses returned an error: Metric memory_l1_wavefronts_shared not found              
+    ----- --------------------------------------------------------------------------------------------------------------
+    ERR   <built-in function IAction_metric_by_name> returned a result with an exception set                            
+          /home/yuanqingwang/Documents/NVIDIA Nsight Compute/2023.2.0/Sections/UncoalescedSharedAccess.py:70            
+          /usr/local/cuda-12.2/nsight-compute-2023.2.0/target/linux-desktop-glibc_2_11_3-x64/../../sections/NvRules.py:2
+          017                                                                                                           
+
