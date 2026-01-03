@@ -9,133 +9,6 @@
 #include "camera.h"
 #include "material.h"
 
-// ---------------------- 简易 Octree 支持（最小增量实现） ----------------------
-struct aabb {
-    vec3 _min;
-    vec3 _max;
-    __device__ aabb() {}
-    __device__ aabb(const vec3& a, const vec3& b) : _min(a), _max(b) {}
-    __device__ bool hit(const ray& r, float t_min, float t_max) const {
-        for (int a = 0; a < 3; a++) {
-            float invD = 1.0f / r.direction()[a];
-            float t0 = (_min[a] - r.origin()[a]) * invD;
-            float t1 = (_max[a] - r.origin()[a]) * invD;
-            if (invD < 0.0f) {
-                float tmp = t0; t0 = t1; t1 = tmp;
-            }
-            t_min = t0 > t_min ? t0 : t_min;
-            t_max = t1 < t_max ? t1 : t_max;
-            if (t_max <= t_min) return false;
-        }
-        return true;
-    }
-};
-
-__device__ inline aabb surrounding_box(const aabb& b0, const aabb& b1) {
-    vec3 small(fminf(b0._min.x(), b1._min.x()),
-               fminf(b0._min.y(), b1._min.y()),
-               fminf(b0._min.z(), b1._min.z()));
-    vec3 big(fmaxf(b0._max.x(), b1._max.x()),
-             fmaxf(b0._max.y(), b1._max.y()),
-             fmaxf(b0._max.z(), b1._max.z()));
-    return aabb(small, big);
-}
-
-__device__ inline aabb sphere_box(const sphere* s) {
-    vec3 rvec(s->radius, s->radius, s->radius);
-    return aabb(s->center - rvec, s->center + rvec);
-}
-
-class octree_node : public hitable {
-public:
-    __device__ octree_node() : leaf(nullptr) {
-        for (int i = 0; i < 8; i++) children[i] = nullptr;
-    }
-    aabb box;
-    octree_node* children[8];
-    hitable_list* leaf; // 叶子节点复用已有 hitable_list
-
-    __device__ bool is_leaf() const { return leaf != nullptr; }
-
-    __device__ virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
-        if (!box.hit(r, t_min, t_max)) return false;
-        bool hit_anything = false;
-        float closest = t_max;
-        hit_record temp;
-        if (is_leaf()) {
-            if (leaf->hit(r, t_min, closest, temp)) {
-                hit_anything = true;
-                closest = temp.t;
-                rec = temp;
-            }
-        } else {
-            for (int i = 0; i < 8; i++) {
-                if (children[i] && children[i]->hit(r, t_min, closest, temp)) {
-                    hit_anything = true;
-                    closest = temp.t;
-                    rec = temp;
-                }
-            }
-        }
-        return hit_anything;
-    }
-};
-
-__device__ octree_node* build_octree(sphere** objs, int count, int depth, int max_depth = 8, int leaf_size = 8) {
-    octree_node* node = new octree_node();
-    // 计算当前节点包围盒
-    aabb cur_box = sphere_box(objs[0]);
-    for (int i = 1; i < count; i++) {
-        cur_box = surrounding_box(cur_box, sphere_box(objs[i]));
-    }
-    node->box = cur_box;
-
-    // 叶子条件
-    if (count <= leaf_size || depth >= max_depth) {
-        sphere** leaf_objs = new sphere*[count];
-        for (int i = 0; i < count; i++) leaf_objs[i] = objs[i];
-        node->leaf = new hitable_list((hitable**)leaf_objs, count);
-        return node;
-    }
-
-    // 划分 8 个子空间
-    vec3 center = 0.5f * (cur_box._min + cur_box._max);
-    int child_counts[8] = {0};
-    // 预分配临时桶
-    sphere** child_objs[8];
-    for (int i = 0; i < 8; i++) child_objs[i] = new sphere*[count];
-
-    for (int i = 0; i < count; i++) {
-        int oct = 0;
-        if (objs[i]->center.x() >= center.x()) oct |= 1;
-        if (objs[i]->center.y() >= center.y()) oct |= 2;
-        if (objs[i]->center.z() >= center.z()) oct |= 4;
-        child_objs[oct][child_counts[oct]++] = objs[i];
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (child_counts[i] > 0) {
-            node->children[i] = build_octree(child_objs[i], child_counts[i], depth + 1, max_depth, leaf_size);
-        }
-        delete [] child_objs[i];
-    }
-    return node;
-}
-
-__device__ void free_octree(octree_node* node) {
-    if (!node) return;
-    if (node->is_leaf()) {
-        // leaf->list 在 hitable_list 内部，不需要单独释放元素指针（由外部统一释放）
-        delete[] (sphere**)node->leaf->list;
-        delete node->leaf;
-    } else {
-        for (int i = 0; i < 8; i++) {
-            free_octree(node->children[i]);
-        }
-    }
-    delete node;
-}
-
 // limited version of checkCudaErrors from helper_cuda.h in CUDA examples
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
 
@@ -247,8 +120,7 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
         d_list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
         d_list[i++] = new sphere(vec3(4, 1, 0),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
         *rand_state = local_rand_state;
-        // 使用 Octree 作为世界加速结构
-        *d_world  = build_octree((sphere**)d_list, 22*22+1+3, 0);
+        *d_world  = new hitable_list(d_list, 22*22+1+3);
 
         vec3 lookfrom(13,2,3);
         vec3 lookat(0,0,0);
@@ -265,13 +137,11 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
 }
 
 __global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera) {
-    // 释放 Octree 节点
-    free_octree((octree_node*)(*d_world));
-    // 释放所有球体及材质
     for(int i=0; i < 22*22+1+3; i++) {
         delete ((sphere *)d_list[i])->mat_ptr;
         delete d_list[i];
     }
+    delete *d_world;
     delete *d_camera;
 }
 
