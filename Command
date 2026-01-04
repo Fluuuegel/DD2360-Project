@@ -1,7 +1,10 @@
 make
 make out.ppm # get a new result
 eog out.ppm # check the picture
+
 nsys profile -o baseline --stats=true ./cudart > /dev/null # benchmark
+nsys-ui baseline.nsys-rep
+
 
 ncu -k render --set basic --target-processes all --replay-mode kernel ./cudart > ncu_basic.txt 2>&1 </dev/null
 
