@@ -109,11 +109,9 @@ Core source file:
   Entry point and rendering logic (kernels, configuration, scene construction)
 
 Acceleration and precision (branch-dependent):
-- `acceleration_structure.h` – Octree implementation for spatial partitioning 
 - `lbvh.h` – LBVH construction and traversal 
 - `morton.h` – Morton code generation 
 - `aabb.h` – Axis-aligned bounding boxes 
-- `precision_types.h` – Precision control (FP32 / FP16 experiments)
 
 Rendering components (mostly inherited from the base implementation):
 - `camera.h` – Camera model (depth of field support) 
