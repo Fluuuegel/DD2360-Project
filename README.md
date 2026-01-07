@@ -1,81 +1,144 @@
-Ray Tracing in One Weekend in CUDA
-==================================
+# DD2360-RayTracing
 
-This is yet another _Ray Tracing in One Weekend_ clone, but this time using CUDA instead of C++.
+A CUDA-based GPU ray tracer developed for **DD2360 Applied GPU Programming (KTH)**. 
+This project follows a profiling-driven optimisation workflow starting from a brute-force baseline and progressing to two acceleration structures: an octree and a GPU-oriented Linear Bounding Volume Hierarchy (LBVH).
 
-By Roger Allen
-May, 2018
+Based on the CUDA implementation from 
+https://github.com/rogerallen/raytracinginoneweekendincuda by Roger Allen.
 
-See the [Master Branch](https://github.com/rogerallen/raytracinginoneweekend) for more information.
+---
 
-Chapter 1
----------
+## Branches
 
-This introduces the basic kernel launch mechanism & host/device memory management.  We are just creating an image on the GPU device and cudaMallocmanaged allows for sharing the framebuffer and automatically copying that buffer to & from the device.
+This repository is organised into three main branches:
 
-I also added a timer to see how long it takes the GPU to do rendering.
+- `baseline` 
+  Brute-force CUDA ray tracer without acceleration structures.
 
-Chapter 2
----------
+- `octree` 
+  Ray tracer extended with an **octree** spatial subdivision structure to prune ray–object intersection tests.
 
-Because CUDA is compatible with C++ and the vec3.h class will be used on both GPU & CPU, we add `__host__` `__device__` as a prefix to all methods.
+- `lbvh` 
+  Ray tracer extended with an **LBVH** (Linear BVH) using Morton codes and a linear memory layout for GPU-friendly construction and traversal.
 
-Chapter 3
----------
+The `lbvh` branch introduces additional headers (e.g. `aabb.h`, `lbvh.h`, `morton.h`) that are not present in `baseline` and `octree`.
 
-Since the ray class is only used on the GPU, we will just add `__device__` as a prefix to all methods.
+---
 
-The color function just needs a `__device__` added since this is called from the render kernel.
+## Requirements
 
-Note, doing a straight translation from the original C++ will mean that any floating-point constants will be doubles and math on the GPU will be forced to be double-precision.  This will hurt our performance unnecessarily.  Special attention to floating point constants must be taken (e.g. 0.5 -> 0.5f).
+- CUDA Toolkit 11.0+
+- C++ compiler supported by your CUDA toolkit
+- A CUDA-capable NVIDIA GPU
 
-Use the "profile_metrics" makefile target to count inst_fp_64 and be sure that is 0.
+---
 
-Chapter 4
----------
+## Build and Render (Makefile)
 
-We only need to add a `__device__` to the hit_sphere() call and use profile_metrics to watch for those floating-point constants.
+```bash
+make
+make out.ppm        # render and write output to out.ppm
+eog out.ppm         # open the image with Eye of GNOME
+```
 
-Chapter 5
----------
+- `make` builds the CUDA executable (`./cudart`)
+- `make out.ppm` runs the renderer and saves the result to `out.ppm`
+- `eog out.ppm` opens the rendered image
 
-Here we have to create our world of spheres on the device and get familiar with how we do memory management for CUDA C++ classes.  Note the cudaMalloc of `d_list` and `d_world` and the `create_world` kernel.
+---
 
-Again, attend to `__device__` and floating-point constants in hitable.h, hitable_list.h and sphere.h.
+## Profiling and Benchmarking
 
-Chapter 6
----------
+### Nsight Systems (end-to-end timeline)
 
-In this chapter we need to understand using cuRAND for per-thread random numbers.  See `d_rand_state` and `render_init`.
+```bash
+nsys profile -o lbvh --stats=true ./cudart > /dev/null
+nsys-ui lbvh.nsys-rep
+```
 
-Note that now using debug flags in compilation makes a big difference in runtime.  Remove those flags for a signficant speedup.
+- Records a full system timeline and kernel breakdown
+- Identifies dominant kernels such as `render`, `create_world`, and `free_world`
+- `> /dev/null` suppresses image output during profiling
 
-Chapter 7
----------
+---
 
-Matching the C++ code in the color function in main.cu would recurse enough into the color() calls that it was crashing the program by overrunning the stack, so we turn this function into a limited-depth loop instead.  Later code in the book limits to a max depth of 50, so we adapt this a few chapters early on the GPU.
+### Nsight Compute (single-kernel analysis)
 
-Chapter 8
----------
+```bash
+ncu -k render --set basic --replay-mode kernel --target-processes all \
+./cudart > ncu_kernel_basic.txt 2>&1
+```
 
-Just more plumbing for per-thread local random state, mostly.
+- Profiles only the `render` kernel
+- Collects metrics such as occupancy, memory throughput, and compute throughput
+- Outputs results to `ncu_kernel_basic.txt`
 
-Chapter 9
----------
+---
 
-Similar to previous modifications.
+## Runtime Parameters (configured in `main.cu`)
 
-Chapter 10
-----------
+This project does **not** provide a command-line interface. 
+All experimental parameters are configured directly in `main.cu`.
 
-Similar to previous modifications.
+```cpp
+int nx = 1200;
+int ny = 800;
+int ns = 10;
+int tx = 8;
+int ty = 8;
 
-Chapter 11
-----------
+const int GRID_RADIUS = 11;
+const int NUM_EXTRA_SPHERES = 3;
+const int NUM_GROUND = 1;
 
-Similar to previous modifications.
+const int NUM_GRID_SPHERES = (2 * GRID_RADIUS) * (2 * GRID_RADIUS);
+const int NUM_HITABLES     = NUM_GRID_SPHERES + NUM_EXTRA_SPHERES + NUM_GROUND;
+```
 
-Chapter 12
-----------
+- `nx`, `ny`: image resolution 
+- `ns`: samples per pixel 
+- `tx`, `ty`: CUDA block dimensions 
+- `GRID_RADIUS`: controls scene complexity (number of spheres)
 
-And we're done!
+---
+
+## Project Structure
+
+Core source file:
+- `main.cu` 
+  Entry point and rendering logic (kernels, configuration, scene construction)
+
+Acceleration and precision (branch-dependent):
+- `acceleration_structure.h` – Octree implementation for spatial partitioning 
+- `lbvh.h` – LBVH construction and traversal 
+- `morton.h` – Morton code generation 
+- `aabb.h` – Axis-aligned bounding boxes 
+- `precision_types.h` – Precision control (FP32 / FP16 experiments)
+
+Rendering components (mostly inherited from the base implementation):
+- `camera.h` – Camera model (depth of field support) 
+- `hitable.h`, `hitable_list.h` – Abstract ray–object interface and scene container 
+- `material.h` – Material models (Lambertian, metal, dielectric) 
+- `sphere.h` – Sphere primitive 
+- `ray.h` – Ray definition 
+- `vec3.h` – Vector mathematics
+
+---
+
+## Profiling Artifacts
+
+The repository may contain profiling and analysis outputs such as:
+
+- `*.nsys-rep` (Nsight Systems reports) 
+- `ncu_*.txt` (Nsight Compute logs) 
+- `out.ppm` (rendered images)
+
+These are used to support the performance evaluation presented in the final report.
+
+---
+
+## Contributors
+
+- Yuanqing Wang 
+- Yuxuan Sun 
+- Yiyao Zhang 

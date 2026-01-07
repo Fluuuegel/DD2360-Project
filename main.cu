@@ -93,14 +93,14 @@ __global__ void render(vec3 *fb, int max_x, int max_y, int ns, camera **cam, hit
 
 #define RND (curand_uniform(&local_rand_state))
 
-__global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera, int nx, int ny, curandState *rand_state) {
+__global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera, int nx, int ny, curandState *rand_state, int grid_radius, int num_hitables) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         curandState local_rand_state = *rand_state;
         d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000,
                                new lambertian(vec3(0.5, 0.5, 0.5)));
         int i = 1;
-        for(int a = -11; a < 11; a++) {
-            for(int b = -11; b < 11; b++) {
+        for(int a = -grid_radius; a < grid_radius; a++) {
+            for(int b = -grid_radius; b < grid_radius; b++) {
                 float choose_mat = RND;
                 vec3 center(a+RND,0.2,b+RND);
                 if(choose_mat < 0.8f) {
@@ -120,7 +120,7 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
         d_list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
         d_list[i++] = new sphere(vec3(4, 1, 0),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
         *rand_state = local_rand_state;
-        *d_world  = new hitable_list(d_list, 22*22+1+3);
+        *d_world  = new hitable_list(d_list, num_hitables);
 
         vec3 lookfrom(13,2,3);
         vec3 lookat(0,0,0);
@@ -136,8 +136,8 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
     }
 }
 
-__global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera) {
-    for(int i=0; i < 22*22+1+3; i++) {
+__global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera,int num_hitables) {
+    for(int i=0; i < num_hitables; i++) {
         delete ((sphere *)d_list[i])->mat_ptr;
         delete d_list[i];
     }
@@ -174,14 +174,21 @@ int main() {
     checkCudaErrors(cudaDeviceSynchronize());
 
     // make our world of hitables & the camera
+    const int GRID_RADIUS = 11; // original 11  22*22+1+3
+	const int NUM_EXTRA_SPHERES = 3;    // big ball
+	const int NUM_GROUND = 1;
+
+	const int NUM_GRID_SPHERES = (2 * GRID_RADIUS) * (2 * GRID_RADIUS);
+	const int NUM_HITABLES     = NUM_GRID_SPHERES + NUM_EXTRA_SPHERES + NUM_GROUND;
+	
     hitable **d_list;
-    int num_hitables = 22*22+1+3;
+    int num_hitables = NUM_HITABLES;
     checkCudaErrors(cudaMalloc((void **)&d_list, num_hitables*sizeof(hitable *)));
     hitable **d_world;
     checkCudaErrors(cudaMalloc((void **)&d_world, sizeof(hitable *)));
     camera **d_camera;
     checkCudaErrors(cudaMalloc((void **)&d_camera, sizeof(camera *)));
-    create_world<<<1,1>>>(d_list, d_world, d_camera, nx, ny, d_rand_state2);
+    create_world<<<1,1>>>(d_list, d_world, d_camera, nx, ny, d_rand_state2, GRID_RADIUS, num_hitables);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
@@ -214,7 +221,7 @@ int main() {
 
     // clean up
     checkCudaErrors(cudaDeviceSynchronize());
-    free_world<<<1,1>>>(d_list,d_world,d_camera);
+    free_world<<<1,1>>>(d_list,d_world,d_camera, num_hitables);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaFree(d_camera));
     checkCudaErrors(cudaFree(d_world));
