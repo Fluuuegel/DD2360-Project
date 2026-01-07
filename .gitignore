@@ -5,23 +5,3 @@
 **/RayTraci.A506952C
 
 **/x64
-# build / binary
-cudart
-*.o
-*.out
-
-# render outputs
-*.ppm
-*.png
-
-# profiling
-*.nsys-rep
-*.sqlite
-
-# cmake / build
-build/
-CMakeFiles/
-CMakeCache.txt
-
-# editor
-.vscode/
